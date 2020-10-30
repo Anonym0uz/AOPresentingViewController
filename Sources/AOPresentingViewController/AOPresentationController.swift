@@ -132,13 +132,15 @@ private extension AOPresentationController {
 //            gest.view!.frame.origin.y = (translation.y > 0) ?
 //                originView.y + translation.y :
 //                originView.y
-            
+            print(translation.y)
             if translation.y > 0 {
                 gest.view!.frame.origin.y = originView.y + translation.y
             } else {
                 gest.view!.frame.origin.y = originView.y
             }
-            dimmingView.backgroundColor = UIColor(white: 0.0, alpha: (gest.view!.frame.origin.y / 1000 < dimmyAlpha) ? gest.view!.frame.origin.y / 1000 : dimmyAlpha )
+            dimmingView.backgroundColor = UIColor(white: 0.0, alpha: ((originView.y + translation.y) / 1000 > dimmyAlpha) ?
+                                                  (originView.y + translation.y) / 1000 :
+                                                  dimmyAlpha)
         }
         if gest.state == .ended {
             if gest.view!.frame.origin.y >= presentedView!.frame.maxY / 1.7 {
