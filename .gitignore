@@ -89,3 +89,5 @@ fastlane/test_output
 
 iOSInjectionProject/
 Sources/AOPresentingViewController/.DS_Store
+.DS_Store
+Sources/.DS_Store

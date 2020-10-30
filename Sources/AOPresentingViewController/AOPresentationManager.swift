@@ -8,7 +8,13 @@ enum PresentationDirection {
 }
 
 enum PresentationSize {
+    /**
+     * Half screen size
+     */
     case half
+    /**
+     * Full screen size
+     */
     case full
     /**
      * Custom size with 4 CGFloat params (X, Y, Width, Height)
@@ -21,6 +27,7 @@ class AOPresentationManager: NSObject {
     var size: PresentationSize = .half
     var dismissHandler: () -> Void = {}
     var enableCloseByTap: Bool = true
+    var enableCloseByPan: Bool = true
     var dimmyAlpha: CGFloat = 0.5
     var roundCorners: UIRectCorner = .init()
     var roundRadius: CGFloat = 0.0
@@ -39,7 +46,18 @@ extension AOPresentationManager: UIViewControllerTransitioningDelegate {
                                                               dismissHandler: dismissHandler,
                                                               closeByTap: enableCloseByTap)
         presentationController.setRoundCorners(roundCorners, radius: roundRadius)
+        presentationController.setCloseByPan(enableCloseByPan)
         return presentationController
+    }
+    
+    func customPresent(onView controller: UIViewController,
+                       present: UIViewController,
+                       transitioningDelegate: UIViewControllerTransitioningDelegate,
+                       animated: Bool = true,
+                       completeHandler: (() -> Void)? = nil) {
+        present.transitioningDelegate = transitioningDelegate
+        present.modalPresentationStyle = .custom
+        controller.present(present, animated: animated, completion: completeHandler)
     }
     
     func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {

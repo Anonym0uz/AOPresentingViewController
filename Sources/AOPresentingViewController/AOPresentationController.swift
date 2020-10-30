@@ -8,10 +8,15 @@ class AOPresentationController: UIPresentationController {
     private var direction: PresentationDirection
     private var size: PresentationSize
     private var enableCloseByTap: Bool = true
+    private var enableCloseByPan: Bool = true
     private var dimmingView: UIView!
     private var dimmyAlpha: CGFloat!
     private var roundCorners: UIRectCorner = .init()
     private var roundRadius: CGFloat = 0.0
+    private var panGesture: UIPanGestureRecognizer!
+    
+    private var originView: CGPoint!
+    private var originalSize: CGSize!
     
     init(presentedViewController: UIViewController,
          presenting presentingViewController: UIViewController?,
@@ -26,6 +31,7 @@ class AOPresentationController: UIPresentationController {
         self.enableCloseByTap = closeByTap
         self.dimmyAlpha = dimmy
         super.init(presentedViewController: presentedViewController, presenting: presentingViewController)
+        self.panGesture = UIPanGestureRecognizer(target: self, action: #selector(handleGesture(_:)))
         
         setupDimmingView()
     }
@@ -33,6 +39,12 @@ class AOPresentationController: UIPresentationController {
     func setRoundCorners(_ c: UIRectCorner, radius: CGFloat) {
         roundCorners = c
         roundRadius = radius
+    }
+    
+    func setCloseByPan(_ b: Bool) {
+        enableCloseByPan = b
+        
+        (!enableCloseByPan) ? presentedView?.removeGestureRecognizer(panGesture) : nil
     }
     
     override func presentationTransitionWillBegin() {
@@ -109,6 +121,37 @@ class AOPresentationController: UIPresentationController {
 
 // MARK: - Private
 private extension AOPresentationController {
+    @objc func handleGesture(_ gest: UIPanGestureRecognizer) {
+        if gest.state == .began {
+            originView = gest.view?.frame.origin
+            originalSize = gest.view?.frame.size
+        }
+        if gest.state == .changed {
+            let translation = gest.translation(in: gest.view)
+            
+//            gest.view!.frame.origin.y = (translation.y > 0) ?
+//                originView.y + translation.y :
+//                originView.y
+            
+            if translation.y > 0 {
+                gest.view!.frame.origin.y = originView.y + translation.y
+            } else {
+                gest.view!.frame.origin.y = originView.y
+            }
+            dimmingView.backgroundColor = UIColor(white: 0.0, alpha: (gest.view!.frame.origin.y / 1000 < dimmyAlpha) ? gest.view!.frame.origin.y / 1000 : dimmyAlpha )
+        }
+        if gest.state == .ended {
+            if gest.view!.frame.origin.y >= presentedView!.frame.maxY / 1.7 {
+                presentingViewController.dismiss(animated: true, completion: dismissHandler)
+            } else {
+                UIView.animate(withDuration: 0.5) {
+                    self.presentedView?.frame.origin.y = self.originView.y
+                    self.presentedView?.frame.size.width = self.originalSize.width
+                    self.dimmingView.backgroundColor = UIColor(white: 0.0, alpha: self.dimmyAlpha)
+                }
+            }
+        }
+    }
     
     func getDirection(_ parentSize: CGSize) -> CGSize {
         switch direction {
@@ -151,7 +194,8 @@ private extension AOPresentationController {
         dimmingView.alpha = 0.0
         
         let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(recognizer:)))
-        if enableCloseByTap { dimmingView.addGestureRecognizer(recognizer) }
+        (enableCloseByTap) ? dimmingView.addGestureRecognizer(recognizer) : nil
+        (enableCloseByPan) ? presentedView?.addGestureRecognizer(panGesture) : presentedView?.removeGestureRecognizer(panGesture)
     }
     
     @objc func handleTap(recognizer: UITapGestureRecognizer) {
