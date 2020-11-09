@@ -264,6 +264,7 @@ private extension AOPresentationController {
     }
 }
 
+// MARK: - Work with scroll view
 extension AOPresentationController: UIScrollViewDelegate {
     
     func checkScrollView() {

@@ -54,7 +54,7 @@ extension AOPresentationManager: UIViewControllerTransitioningDelegate {
         presentationController.setFadeDismiss(fadeDismiss)
         return presentationController
     }
-    
+    // MARK: - Custom presenting view controller
     public func customPresent(onView controller: UIViewController,
                        present: UIViewController,
                        transitioningDelegate: UIViewControllerTransitioningDelegate,
@@ -71,5 +71,16 @@ extension AOPresentationManager: UIViewControllerTransitioningDelegate {
     
     public func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
         return AOPresentationAnimator(direction: direction, isPresentation: false)
+    }
+}
+
+extension UIViewController {
+    func customPresent(_ vc: UIViewController,
+                       delegate: AOPresentationManager,
+                       animated: Bool = true,
+                       completeHandler: (() -> Void)? = nil) {
+        vc.transitioningDelegate = delegate
+        vc.modalPresentationStyle = .custom
+        self.present(vc, animated: animated, completion: completeHandler)
     }
 }
