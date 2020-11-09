@@ -31,6 +31,8 @@ class AOPresentationManager: NSObject {
     var dimmyAlpha: CGFloat = 0.5
     var roundCorners: UIRectCorner = .init()
     var roundRadius: CGFloat = 0.0
+    var needNavigationBar: Bool = false
+    var showChevron: Bool = true
     
     func setDismissHandler(_ h: @escaping () -> Void) { dismissHandler = h }
 }
@@ -47,6 +49,7 @@ extension AOPresentationManager: UIViewControllerTransitioningDelegate {
                                                               closeByTap: enableCloseByTap)
         presentationController.setRoundCorners(roundCorners, radius: roundRadius)
         presentationController.setCloseByPan(enableCloseByPan)
+        presentationController.setChevronVisible(showChevron)
         return presentationController
     }
     

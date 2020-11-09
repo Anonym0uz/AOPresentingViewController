@@ -9,11 +9,23 @@ class AOPresentationController: UIPresentationController {
     private var size: PresentationSize
     private var enableCloseByTap: Bool = true
     private var enableCloseByPan: Bool = true
+    private var chevronIsVisible: Bool = true
     private var dimmingView: UIView!
     private var dimmyAlpha: CGFloat!
     private var roundCorners: UIRectCorner = .init()
     private var roundRadius: CGFloat = 0.0
     private var panGesture: UIPanGestureRecognizer!
+    private var sliderView: UIView = {
+        let v = UIView()
+        v.backgroundColor = UIColor.init(red: 191 / 255.0, green: 191 / 255.0, blue: 191 / 255.0, alpha: 1)
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.clipsToBounds = true
+        v.layer.cornerRadius = 6/2
+        return v
+    }()
+    private var sliderWidthConstraint: NSLayoutConstraint!
+    
+    private var scrollView: UIScrollView?
     
     private var originView: CGPoint!
     private var originalSize: CGSize!
@@ -34,6 +46,8 @@ class AOPresentationController: UIPresentationController {
         self.panGesture = UIPanGestureRecognizer(target: self, action: #selector(handleGesture(_:)))
         
         setupDimmingView()
+        
+        checkScrollView()
     }
     
     func setRoundCorners(_ c: UIRectCorner, radius: CGFloat) {
@@ -43,8 +57,12 @@ class AOPresentationController: UIPresentationController {
     
     func setCloseByPan(_ b: Bool) {
         enableCloseByPan = b
+    }
+    
+    func setChevronVisible(_ c: Bool) {
+        chevronIsVisible = c
         
-        (!enableCloseByPan) ? presentedView?.removeGestureRecognizer(panGesture) : nil
+        sliderView.isHidden = (chevronIsVisible) ? false : true
     }
     
     override func presentationTransitionWillBegin() {
@@ -96,6 +114,8 @@ class AOPresentationController: UIPresentationController {
     override func containerViewWillLayoutSubviews() {
         super.containerViewWillLayoutSubviews()
         presentedView?.frame = frameOfPresentedViewInContainerView
+        originView = presentedView?.frame.origin
+        originalSize = presentedView?.frame.size
     }
     
     override func size(forChildContentContainer container: UIContentContainer, withParentContainerSize parentSize: CGSize) -> CGSize {
@@ -132,27 +152,53 @@ private extension AOPresentationController {
 //            gest.view!.frame.origin.y = (translation.y > 0) ?
 //                originView.y + translation.y :
 //                originView.y
+            
+            if !enableCloseByPan {
+                if translation.y > 0 {
+                    gest.view!.frame.origin.y = originView.y + (translation.y / 30)
+                } else {
+                    gest.view!.frame.origin.y = originView.y
+                }
+                return
+            }
+            
             print(translation.y)
             if translation.y > 0 {
                 gest.view!.frame.origin.y = originView.y + translation.y
+//                changeSlider(translation)
             } else {
                 gest.view!.frame.origin.y = originView.y
+                blockScroll(locked: false)
+//                changeSlider(CGPoint(x: 0, y: 0))
             }
-            dimmingView.backgroundColor = UIColor(white: 0.0, alpha: ((originView.y + translation.y) / 1000 > dimmyAlpha) ?
-                                                  (originView.y + translation.y) / 1000 :
-                                                  dimmyAlpha)
+            dimmingView.backgroundColor = UIColor(white: 0.0, alpha: (translation.y / gest.view!.frame.size.height > 0) ?
+                                                    dimmyAlpha - (abs(translation.y)) / (gest.view!.frame.size.height * 2) :
+                                                    dimmyAlpha)
         }
         if gest.state == .ended {
-            if gest.view!.frame.origin.y >= presentedView!.frame.maxY / 1.7 {
+            if (gest.view!.frame.origin.y >= presentedView!.frame.maxY / 1.7 || gest.velocity(in: gest.view).y >= 1000) && enableCloseByPan {
                 presentingViewController.dismiss(animated: true, completion: dismissHandler)
             } else {
-                UIView.animate(withDuration: 0.5) {
+                UIView.animate(withDuration: 0.3) {
                     self.presentedView?.frame.origin.y = self.originView.y
                     self.presentedView?.frame.size.width = self.originalSize.width
                     self.dimmingView.backgroundColor = UIColor(white: 0.0, alpha: self.dimmyAlpha)
+                    self.changeSlider(nil)
+                    self.blockScroll(locked: false)
                 }
             }
         }
+    }
+    
+    func changeSlider(_ translation: CGPoint?) {
+        
+        sliderView.constraints.forEach({ $0.isActive = ($0 == sliderWidthConstraint) ? false : true })
+        
+        sliderWidthConstraint = sliderView.widthAnchor.constraint(equalToConstant: (translation != nil) ? 45 + (abs(translation!.y)) : 45)
+        
+        sliderWidthConstraint.isActive = true
+        
+        containerView?.layoutIfNeeded()
     }
     
     func getDirection(_ parentSize: CGSize) -> CGSize {
@@ -197,10 +243,74 @@ private extension AOPresentationController {
         
         let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(recognizer:)))
         (enableCloseByTap) ? dimmingView.addGestureRecognizer(recognizer) : nil
-        (enableCloseByPan) ? presentedView?.addGestureRecognizer(panGesture) : presentedView?.removeGestureRecognizer(panGesture)
+        presentedView?.addGestureRecognizer(panGesture)
+        
+        presentedView?.addSubview(sliderView)
+        
+        sliderView.topAnchor.constraint(equalTo: presentedView!.topAnchor, constant: 15).isActive = true
+        sliderView.centerXAnchor.constraint(equalTo: presentedView!.centerXAnchor).isActive = true
+        sliderView.heightAnchor.constraint(equalToConstant: 6).isActive = true
+        sliderWidthConstraint = sliderView.widthAnchor.constraint(equalToConstant: 45)
+        sliderWidthConstraint.isActive = true
     }
     
     @objc func handleTap(recognizer: UITapGestureRecognizer) {
         presentingViewController.dismiss(animated: true, completion: dismissHandler)
+    }
+}
+
+extension AOPresentationController: UIScrollViewDelegate {
+    
+    func checkScrollView() {
+        presentedViewController.view.subviews.forEach({ ($0 is UIScrollView) ? self.scrollView = ($0 as! UIScrollView) : print("No scroll view") })
+        if let scroll = scrollView { scroll.delegate = self; scroll.canCancelContentTouches = true }
+    }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if scrollView.contentOffset.y <= 0 {
+            print("Scroll Y: \(scrollView.contentOffset.y)")
+            if scrollView.isDragging {
+                presentedView?.frame.origin.y = originView.y - (scrollView.contentOffset.y * 2)
+            } else {
+                if scrollView.contentOffset.y * 2 <= -130 {
+                    handleTap(recognizer: UITapGestureRecognizer())
+                }
+            }
+            
+        } else {
+            print("Scroll Y: \(scrollView.contentOffset.y)")
+//            blockScroll(locked: false)
+        }
+    }
+    
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if scrollView.contentOffset.y < 0 {
+            print("Scroll Y: \(scrollView.contentOffset.y)")
+            if scrollView.contentOffset.y * 2 <= -130 {
+//                handleTap(recognizer: UITapGestureRecognizer())
+//                presentedView!.frame.origin.y = presentedView!.frame.maxY
+            }
+            
+        }
+    }
+    
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        if scrollView.contentOffset.y == 0 {
+            print("Scroll Y: \(scrollView.contentOffset.y)")
+        }
+    }
+    
+    func scrollViewDidScrollToTop(_ scrollView: UIScrollView) {
+        if scrollView.contentOffset.y < 0 {
+            print("Scroll Y: \(scrollView.contentOffset.y)")
+        }
+    }
+    
+    func blockScroll(locked: Bool = true) {
+        if enableCloseByPan {
+            if let scroll = scrollView {
+                scroll.isScrollEnabled = !locked
+            }
+        }
     }
 }
