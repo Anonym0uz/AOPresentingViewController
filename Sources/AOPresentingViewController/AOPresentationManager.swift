@@ -74,7 +74,7 @@ extension AOPresentationManager: UIViewControllerTransitioningDelegate {
     }
 }
 
-extension UIViewController {
+public extension UIViewController {
     func customPresent(_ vc: UIViewController,
                        delegate: AOPresentationManager,
                        animated: Bool = true,
