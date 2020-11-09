@@ -33,6 +33,7 @@ public class AOPresentationManager: NSObject {
     public var roundRadius: CGFloat = 0.0
     public var needNavigationBar: Bool = false
     public var showChevron: Bool = true
+    public var fadeDismiss: Bool = false
     
     public func setDismissHandler(_ h: @escaping () -> Void) { dismissHandler = h }
 }
@@ -50,6 +51,7 @@ extension AOPresentationManager: UIViewControllerTransitioningDelegate {
         presentationController.setRoundCorners(roundCorners, radius: roundRadius)
         presentationController.setCloseByPan(enableCloseByPan)
         presentationController.setChevronVisible(showChevron)
+        presentationController.setFadeDismiss(fadeDismiss)
         return presentationController
     }
     

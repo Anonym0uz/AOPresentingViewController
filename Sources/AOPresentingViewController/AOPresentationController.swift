@@ -23,12 +23,15 @@ class AOPresentationController: UIPresentationController {
         v.layer.cornerRadius = 6/2
         return v
     }()
+    private var fadeDismiss: Bool = false
     private var sliderWidthConstraint: NSLayoutConstraint!
     
     private var scrollView: UIScrollView?
     
     private var originView: CGPoint!
     private var originalSize: CGSize!
+    
+    private var alreadyDismissed: Bool = false
     
     init(presentedViewController: UIViewController,
          presenting presentingViewController: UIViewController?,
@@ -65,6 +68,10 @@ class AOPresentationController: UIPresentationController {
         sliderView.isHidden = (chevronIsVisible) ? false : true
     }
     
+    func setFadeDismiss(_ f: Bool) {
+        fadeDismiss = f
+    }
+    
     override func presentationTransitionWillBegin() {
         super.presentationTransitionWillBegin()
         
@@ -99,6 +106,8 @@ class AOPresentationController: UIPresentationController {
         
         coordinator.animate { (_) in
             self.dimmingView.alpha = 0.0
+            (self.fadeDismiss) ? self.presentedView?.alpha = 0.0 : nil
+            self.alreadyDismissed = true
         }
     }
     
@@ -148,10 +157,6 @@ private extension AOPresentationController {
         }
         if gest.state == .changed {
             let translation = gest.translation(in: gest.view)
-            
-//            gest.view!.frame.origin.y = (translation.y > 0) ?
-//                originView.y + translation.y :
-//                originView.y
             
             if !enableCloseByPan {
                 if translation.y > 0 {
@@ -262,47 +267,41 @@ private extension AOPresentationController {
 extension AOPresentationController: UIScrollViewDelegate {
     
     func checkScrollView() {
-        presentedViewController.view.subviews.forEach({ ($0 is UIScrollView) ? self.scrollView = ($0 as! UIScrollView) : print("No scroll view") })
+        presentedViewController.view.subviews.forEach({ ($0 is UIScrollView) ? self.scrollView = ($0 as! UIScrollView) : print("No scroll") })
         if let scroll = scrollView { scroll.delegate = self; scroll.canCancelContentTouches = true }
     }
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if scrollView.contentOffset.y <= 0 {
-            print("Scroll Y: \(scrollView.contentOffset.y)")
+        if scrollView.contentOffset.y <= 0 && !alreadyDismissed {
             if scrollView.isDragging {
                 presentedView?.frame.origin.y = originView.y - (scrollView.contentOffset.y * 2)
             } else {
                 if scrollView.contentOffset.y * 2 <= -130 {
                     handleTap(recognizer: UITapGestureRecognizer())
+                } else {
+                    presentedView?.frame.origin.y = originView.y - (scrollView.contentOffset.y * 2)
                 }
             }
             
-        } else {
-            print("Scroll Y: \(scrollView.contentOffset.y)")
-//            blockScroll(locked: false)
         }
     }
     
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         if scrollView.contentOffset.y < 0 {
-            print("Scroll Y: \(scrollView.contentOffset.y)")
             if scrollView.contentOffset.y * 2 <= -130 {
-//                handleTap(recognizer: UITapGestureRecognizer())
-//                presentedView!.frame.origin.y = presentedView!.frame.maxY
             }
-            
         }
     }
     
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         if scrollView.contentOffset.y == 0 {
-            print("Scroll Y: \(scrollView.contentOffset.y)")
+            print("BeginDragging")
         }
     }
     
     func scrollViewDidScrollToTop(_ scrollView: UIScrollView) {
         if scrollView.contentOffset.y < 0 {
-            print("Scroll Y: \(scrollView.contentOffset.y)")
+            print("DidTop")
         }
     }
     
