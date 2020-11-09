@@ -264,10 +264,11 @@ private extension AOPresentationController {
     }
 }
 
+// MARK: - Work with scroll view
 extension AOPresentationController: UIScrollViewDelegate {
     
     func checkScrollView() {
-        presentedViewController.view.subviews.forEach({ ($0 is UIScrollView) ? self.scrollView = ($0 as! UIScrollView) : print("No scroll") })
+        presentedViewController.view.subviews.forEach({ ($0 is UIScrollView) ? self.scrollView = ($0 as! UIScrollView) : nil })
         if let scroll = scrollView { scroll.delegate = self; scroll.canCancelContentTouches = true }
     }
     

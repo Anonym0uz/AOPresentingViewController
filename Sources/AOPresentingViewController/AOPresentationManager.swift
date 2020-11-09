@@ -55,21 +55,22 @@ extension AOPresentationManager: UIViewControllerTransitioningDelegate {
         return presentationController
     }
     
-    public func customPresent(onView controller: UIViewController,
-                       present: UIViewController,
-                       transitioningDelegate: UIViewControllerTransitioningDelegate,
-                       animated: Bool = true,
-                       completeHandler: (() -> Void)? = nil) {
-        present.transitioningDelegate = transitioningDelegate
-        present.modalPresentationStyle = .custom
-        controller.present(present, animated: animated, completion: completeHandler)
-    }
-    
     public func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
         return AOPresentationAnimator(direction: direction, isPresentation: true)
     }
     
     public func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
         return AOPresentationAnimator(direction: direction, isPresentation: false)
+    }
+}
+// MARK: - Custom presenting view controller
+public extension UIViewController {
+    func customPresent(_ vc: UIViewController,
+                       delegate: AOPresentationManager,
+                       animated: Bool = true,
+                       completeHandler: (() -> Void)? = nil) {
+        vc.transitioningDelegate = delegate
+        vc.modalPresentationStyle = .custom
+        self.present(vc, animated: animated, completion: completeHandler)
     }
 }
