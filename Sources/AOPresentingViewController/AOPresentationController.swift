@@ -273,7 +273,7 @@ extension AOPresentationController: UIScrollViewDelegate {
     }
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if scrollView.contentOffset.y <= 0 && !alreadyDismissed {
+        if scrollView.contentOffset.y <= 0 && !alreadyDismissed && enableCloseByPan {
             if scrollView.isDragging {
                 presentedView?.frame.origin.y = originView.y - (scrollView.contentOffset.y * 2)
             } else {
