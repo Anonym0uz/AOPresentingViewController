@@ -15,16 +15,8 @@ class AOPresentationController: UIPresentationController {
     private var roundCorners: UIRectCorner = .init()
     private var roundRadius: CGFloat = 0.0
     private var panGesture: UIPanGestureRecognizer!
-    private var sliderView: UIView = {
-        let v = UIView()
-        v.backgroundColor = UIColor.init(red: 191 / 255.0, green: 191 / 255.0, blue: 191 / 255.0, alpha: 1)
-        v.translatesAutoresizingMaskIntoConstraints = false
-        v.clipsToBounds = true
-        v.layer.cornerRadius = 6/2
-        return v
-    }()
+    private lazy var sliderView: AOThumbView = AOThumbView(frame: .zero)
     private var fadeDismiss: Bool = false
-    private var sliderWidthConstraint: NSLayoutConstraint!
     
     private var scrollView: UIScrollView?
     
@@ -118,6 +110,12 @@ class AOPresentationController: UIPresentationController {
         mask.path = path.cgPath
         presentedView?.layer.mask = (!roundCorners.isEmpty) ? mask : nil
         presentedView?.clipsToBounds = (!roundCorners.isEmpty) ? true : false
+        
+        NSLayoutConstraint.activate([
+            sliderView.centerXAnchor.constraint(equalTo: presentedView!.centerXAnchor),
+            sliderView.widthAnchor.constraint(equalToConstant: 30),
+            sliderView.topAnchor.constraint(equalTo: presentedView!.topAnchor, constant: 5)
+        ])
     }
     
     override func containerViewWillLayoutSubviews() {
@@ -170,11 +168,9 @@ private extension AOPresentationController {
             print(translation.y)
             if translation.y > 0 {
                 gest.view!.frame.origin.y = originView.y + translation.y
-//                changeSlider(translation)
             } else {
                 gest.view!.frame.origin.y = originView.y
                 blockScroll(locked: false)
-//                changeSlider(CGPoint(x: 0, y: 0))
             }
             dimmingView.backgroundColor = UIColor(white: 0.0, alpha: (translation.y / gest.view!.frame.size.height > 0) ?
                                                     dimmyAlpha - (abs(translation.y)) / (gest.view!.frame.size.height * 2) :
@@ -188,22 +184,10 @@ private extension AOPresentationController {
                     self.presentedView?.frame.origin.y = self.originView.y
                     self.presentedView?.frame.size.width = self.originalSize.width
                     self.dimmingView.backgroundColor = UIColor(white: 0.0, alpha: self.dimmyAlpha)
-                    self.changeSlider(nil)
                     self.blockScroll(locked: false)
                 }
             }
         }
-    }
-    
-    func changeSlider(_ translation: CGPoint?) {
-        
-        sliderView.constraints.forEach({ $0.isActive = ($0 == sliderWidthConstraint) ? false : true })
-        
-        sliderWidthConstraint = sliderView.widthAnchor.constraint(equalToConstant: (translation != nil) ? 45 + (abs(translation!.y)) : 45)
-        
-        sliderWidthConstraint.isActive = true
-        
-        containerView?.layoutIfNeeded()
     }
     
     func getDirection(_ parentSize: CGSize) -> CGSize {
@@ -252,11 +236,7 @@ private extension AOPresentationController {
         
         presentedView?.addSubview(sliderView)
         
-        sliderView.topAnchor.constraint(equalTo: presentedView!.topAnchor, constant: 15).isActive = true
-        sliderView.centerXAnchor.constraint(equalTo: presentedView!.centerXAnchor).isActive = true
-        sliderView.heightAnchor.constraint(equalToConstant: 6).isActive = true
-        sliderWidthConstraint = sliderView.widthAnchor.constraint(equalToConstant: 45)
-        sliderWidthConstraint.isActive = true
+        
     }
     
     @objc func handleTap(recognizer: UITapGestureRecognizer) {
